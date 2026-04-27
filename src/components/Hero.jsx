@@ -198,7 +198,7 @@ export default function Hero() {
 
         {/* Tagline */}
         <motion.div variants={item} className="flex items-center gap-0 mb-8 flex-wrap justify-center">
-          {['Senior Software Engineer', '·', 'AI Enthusiast'].map((word, i) => (
+          {['Senior Software Engineer', '·', 'AI & Graph RAG Specalist'].map((word, i) => (
             <motion.span
               key={i}
               initial={{ opacity: 0, x: i === 0 ? -20 : i === 2 ? 20 : 0, scale: i === 1 ? 0 : 1 }}
