@@ -102,19 +102,24 @@ export default function About() {
             className="flex-1"
           >
             <motion.p variants={fadeRight} className="text-slate-600 text-[1.035rem] leading-relaxed mb-5">
-              I am a{' '}
-              <strong className="text-slate-900 font-semibold">full stack developer</strong> with
-              extensive experience in system administration. Passionate and enthusiastic, with
-              exceptional strength in handling critical problem-solving activities.
+              I'm a{' '}
+              <strong className="text-slate-900 font-semibold">Senior Software Engineer</strong> who
+              builds systems from first principles — solid{' '}
+              <strong className="text-slate-900 font-semibold">DSA</strong> and{' '}
+              <strong className="text-slate-900 font-semibold">system design</strong> fundamentals
+              behind every backend I ship, from search infrastructure and graph-based data models to
+              production AI pipelines.
             </motion.p>
             <motion.p variants={fadeRight} className="text-slate-600 text-[1.035rem] leading-relaxed mb-8">
-              My primary stack is{' '}
-              <strong className="text-slate-900 font-semibold">Python</strong> (Django, Django REST
-              Framework, Celery + Redis),{' '}
-              <strong className="text-slate-900 font-semibold">JavaScript / React</strong>, and
-              databases such as{' '}
-              <strong className="text-slate-900 font-semibold">PostgreSQL &amp; MongoDB</strong>.
-              Comfortable with Docker, Kubernetes, CI/CD, and cloud deployments on AWS and Azure.
+              Recent focus is{' '}
+              <strong className="text-slate-900 font-semibold">AI-native and agentic systems</strong>{' '}
+              — Graph RAG architectures on Neo4j, MCP servers, and LLM tool-use for autonomous
+              workflows — on top of a core stack of{' '}
+              <strong className="text-slate-900 font-semibold">Python</strong> (Django, FastAPI, Celery
+              + Redis),{' '}
+              <strong className="text-slate-900 font-semibold">JavaScript / React</strong>, and{' '}
+              <strong className="text-slate-900 font-semibold">PostgreSQL &amp; MongoDB</strong>,
+              deployed via Docker, Kubernetes, and CI/CD on AWS, Azure, and GCP.
             </motion.p>
 
             <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
