@@ -1,28 +1,50 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { FiMaximize2, FiTag } from 'react-icons/fi'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { FaGithub } from 'react-icons/fa'
+import { FiPlay, FiExternalLink } from 'react-icons/fi'
 import { projects } from '../data/projects'
 import ProjectModal from './ProjectModal'
 
 const VP = { once: false, margin: '-80px' }
-
-/* Each card enters from a different direction for visual variety */
-const directions = [
-  { x: -40, y: 0  },
-  { x:   0, y: 40 },
-  { x:  40, y: 0  },
-  { x: -40, y: 0  },
-  { x:   0, y: 40 },
-  { x:  40, y: 0  },
-]
 
 const wordVariant = {
   hidden:  { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.4, 0, 0.2, 1] } },
 }
 
+/* Badge icon inferred from each project's existing link — content/data untouched */
+function BadgeIcon({ project }) {
+  const href = project.link?.href || ''
+  const label = project.link?.label || ''
+  if (href.includes('github.com')) return <FaGithub size={16} />
+  if (href.includes('youtube.com') || label.toLowerCase().includes('watch') || label.toLowerCase().includes('demo')) return <FiPlay size={16} />
+  return <FiExternalLink size={16} />
+}
+
+const ITEMS_PER_PAGE = 3
+const AUTO_SCROLL_INTERVAL = 5000
+
 export default function Projects() {
   const [selected, setSelected] = useState(null)
+  const [page, setPage] = useState(0)
+  const isPaused = useRef(false)
+  const autoTimer = useRef(null)
+
+  const totalPages = Math.ceil(projects.length / ITEMS_PER_PAGE)
+  const start = page * ITEMS_PER_PAGE
+  const visible = projects.slice(start, start + ITEMS_PER_PAGE)
+
+  const goPrev = useCallback(() => setPage((p) => Math.max(0, p - 1)), [])
+  const goNext = useCallback(() => setPage((p) => Math.min(totalPages - 1, p + 1)), [totalPages])
+
+  /* Auto-scroll, paused on hover — same carousel behavior as the reference design */
+  useEffect(() => {
+    autoTimer.current = setInterval(() => {
+      if (isPaused.current) return
+      setPage((p) => (p + 1) % totalPages)
+    }, AUTO_SCROLL_INTERVAL)
+    return () => clearInterval(autoTimer.current)
+  }, [totalPages])
 
   return (
     <section id="projects" className="py-28 bg-dark-800 overflow-hidden">
@@ -59,82 +81,100 @@ export default function Projects() {
           </h2>
         </motion.div>
 
-        {/* Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {projects.map((project, i) => {
-            const dir = directions[i % directions.length]
-            return (
-              <motion.div
-                key={project.id}
-                initial={{ opacity: 0, x: dir.x, y: dir.y, filter: 'blur(6px)' }}
-                whileInView={{ opacity: 1, x: 0, y: 0, filter: 'blur(0px)' }}
-                viewport={VP}
-                transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: (i % 3) * 0.1 }}
-                whileHover={{ y: -8, transition: { duration: 0.25 } }}
-                onClick={() => setSelected(project)}
-                className="group bg-white/[0.03] border border-white/[0.07] rounded-2xl overflow-hidden
-                           cursor-pointer hover:border-emerald-500/35
-                           hover:shadow-[0_20px_40px_rgba(0,0,0,0.5),0_0_30px_rgba(16,185,129,0.1)]
-                           transition-all duration-300"
-              >
-                {/* Image */}
-                <div className="relative overflow-hidden h-44 bg-dark-900">
-                  <motion.img
-                    src={project.image}
-                    alt={project.title}
-                    className="w-full h-full object-cover"
-                    whileHover={{ scale: 1.08 }}
-                    transition={{ duration: 0.5 }}
-                  />
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-dark-900/80 via-transparent to-transparent
-                                  opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="absolute inset-0 flex items-center justify-center
-                                  opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <motion.div
-                      whileHover={{ scale: 1.2, rotate: 10 }}
-                      className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/50
-                                 flex items-center justify-center backdrop-blur-sm"
+        {/* Carousel */}
+        <div
+          className="flex items-center gap-4"
+          onMouseEnter={() => { isPaused.current = true }}
+          onMouseLeave={() => { isPaused.current = false }}
+        >
+          {/* Prev arrow */}
+          <button
+            onClick={goPrev}
+            disabled={page === 0}
+            aria-label="Previous projects"
+            className="shrink-0 w-11 h-11 rounded-full border-2 border-emerald-400/40 text-emerald-400
+                       flex items-center justify-center transition-all
+                       hover:bg-emerald-400 hover:text-dark-900 hover:border-emerald-400
+                       disabled:opacity-20 disabled:pointer-events-none"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+
+          {/* Cards track */}
+          <div className="flex-1 min-h-[400px] grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {visible.map((project, i) => (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0, transition: { duration: 0.5, delay: i * 0.1, ease: [0.4, 0, 0.2, 1] } }}
+                  exit={{ opacity: 0, y: 30, transition: { duration: 0.3, delay: i * 0.06, ease: [0.4, 0, 0.2, 1] } }}
+                  whileHover={{ y: -6 }}
+                  onClick={() => setSelected(project)}
+                  className="group bg-[#1a1a1a] border border-emerald-500/[0.15] rounded-2xl overflow-hidden
+                             cursor-pointer hover:border-emerald-400/40
+                             hover:shadow-[0_12px_32px_rgba(16,185,129,0.2)]
+                             transition-[border-color,box-shadow] duration-300 flex flex-col"
+                >
+                  {/* Image */}
+                  <div className="relative w-full h-60 overflow-hidden">
+                    <motion.img
+                      src={project.image}
+                      alt={project.title}
+                      className="w-full h-full object-cover"
+                      whileHover={{ scale: 1.08 }}
+                      transition={{ duration: 0.4 }}
+                    />
+                    {/* Link-type badge — same circular accent badge as the reference design */}
+                    <motion.span
+                      whileHover={{ scale: 1.15 }}
+                      className="absolute top-3 right-3 w-9 h-9 rounded-full bg-emerald-400 text-dark-900
+                                 flex items-center justify-center transition-colors
+                                 group-hover:bg-white"
                     >
-                      <FiMaximize2 className="text-emerald-400" size={18} />
-                    </motion.div>
+                      <BadgeIcon project={project} />
+                    </motion.span>
                   </div>
-                  {/* Index badge */}
-                  <div className="absolute top-3 left-3 w-7 h-7 rounded-full bg-dark-900/80 border border-white/10
-                                  flex items-center justify-center backdrop-blur-sm">
-                    <span className="text-[0.6rem] font-bold text-slate-400">
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Info */}
-                <div className="p-5">
-                  <h3 className="text-sm font-bold text-slate-100 mb-1.5 group-hover:text-emerald-400 transition-colors">
-                    {project.title}
-                  </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed mb-3">{project.description}</p>
-
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {project.tags.map((tag, ti) => (
-                      <motion.span
-                        key={tag}
-                        initial={{ opacity: 0, scale: 0.75 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: false }}
-                        transition={{ delay: 0.2 + ti * 0.06 }}
-                        className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full
-                                   bg-emerald-500/10 border border-emerald-500/25 text-emerald-400"
-                      >
-                        {tag}
-                      </motion.span>
-                    ))}
+                  {/* Body */}
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h3 className="text-lg font-semibold text-emerald-400 mb-2">{project.title}</h3>
+                    <p className="text-sm text-slate-400 leading-relaxed flex-1">{project.description}</p>
                   </div>
-                </div>
-              </motion.div>
-            )
-          })}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {/* Next arrow */}
+          <button
+            onClick={goNext}
+            disabled={page === totalPages - 1}
+            aria-label="Next projects"
+            className="shrink-0 w-11 h-11 rounded-full border-2 border-emerald-400/40 text-emerald-400
+                       flex items-center justify-center transition-all
+                       hover:bg-emerald-400 hover:text-dark-900 hover:border-emerald-400
+                       disabled:opacity-20 disabled:pointer-events-none"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Dots */}
+        <div className="flex justify-center gap-2.5 mt-8">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setPage(i)}
+              aria-label={`Go to page ${i + 1}`}
+              className={`w-2.5 h-2.5 rounded-full border-2 border-emerald-400 transition-all
+                ${i === page ? 'bg-emerald-400 scale-[1.3]' : 'bg-transparent'}`}
+            />
+          ))}
         </div>
       </div>
 
