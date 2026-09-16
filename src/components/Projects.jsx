@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { FaGithub } from 'react-icons/fa'
 import { FiPlay, FiExternalLink } from 'react-icons/fi'
 import { projects } from '../data/projects'
@@ -28,7 +28,6 @@ export default function Projects() {
   const [selected, setSelected] = useState(null)
   const [page, setPage] = useState(0)
   const isPaused = useRef(false)
-  const autoTimer = useRef(null)
 
   const totalPages = Math.ceil(projects.length / ITEMS_PER_PAGE)
   const start = page * ITEMS_PER_PAGE
@@ -39,11 +38,11 @@ export default function Projects() {
 
   /* Auto-scroll, paused on hover — same carousel behavior as the reference design */
   useEffect(() => {
-    autoTimer.current = setInterval(() => {
+    const timer = setInterval(() => {
       if (isPaused.current) return
       setPage((p) => (p + 1) % totalPages)
     }, AUTO_SCROLL_INTERVAL)
-    return () => clearInterval(autoTimer.current)
+    return () => clearInterval(timer)
   }, [totalPages])
 
   return (
@@ -81,19 +80,20 @@ export default function Projects() {
           </h2>
         </motion.div>
 
-        {/* Carousel */}
+        {/* Carousel — arrows overlay on top of the grid (sm+) instead of squeezing it in a flex row,
+            so cards keep full width on mobile; navigation there is via the dots below. */}
         <div
-          className="flex items-center gap-4"
+          className="relative"
           onMouseEnter={() => { isPaused.current = true }}
           onMouseLeave={() => { isPaused.current = false }}
         >
-          {/* Prev arrow */}
           <button
             onClick={goPrev}
             disabled={page === 0}
             aria-label="Previous projects"
-            className="shrink-0 w-11 h-11 rounded-full border-2 border-emerald-400/40 text-emerald-400
-                       flex items-center justify-center transition-all
+            className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10
+                       w-11 h-11 rounded-full border-2 border-emerald-400/40 text-emerald-400
+                       items-center justify-center bg-dark-800 transition-all
                        hover:bg-emerald-400 hover:text-dark-900 hover:border-emerald-400
                        disabled:opacity-20 disabled:pointer-events-none"
           >
@@ -102,59 +102,55 @@ export default function Projects() {
             </svg>
           </button>
 
-          {/* Cards track */}
-          <div className="flex-1 min-h-[400px] grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence>
-              {visible.map((project, i) => (
-                <motion.div
-                  key={project.id}
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={{ opacity: 1, y: 0, transition: { duration: 0.5, delay: i * 0.1, ease: [0.4, 0, 0.2, 1] } }}
-                  exit={{ opacity: 0, y: 30, transition: { duration: 0.3, delay: i * 0.06, ease: [0.4, 0, 0.2, 1] } }}
-                  whileHover={{ y: -6 }}
-                  onClick={() => setSelected(project)}
-                  className="group bg-[#1a1a1a] border border-emerald-500/[0.15] rounded-2xl overflow-hidden
-                             cursor-pointer hover:border-emerald-400/40
-                             hover:shadow-[0_12px_32px_rgba(16,185,129,0.2)]
-                             transition-[border-color,box-shadow] duration-300 flex flex-col"
-                >
-                  {/* Image */}
-                  <div className="relative w-full h-60 overflow-hidden">
-                    <motion.img
-                      src={project.image}
-                      alt={project.title}
-                      className="w-full h-full object-cover"
-                      whileHover={{ scale: 1.08 }}
-                      transition={{ duration: 0.4 }}
-                    />
-                    {/* Link-type badge — same circular accent badge as the reference design */}
-                    <motion.span
-                      whileHover={{ scale: 1.15 }}
-                      className="absolute top-3 right-3 w-9 h-9 rounded-full bg-emerald-400 text-dark-900
-                                 flex items-center justify-center transition-colors
-                                 group-hover:bg-white"
-                    >
-                      <BadgeIcon project={project} />
-                    </motion.span>
-                  </div>
+          {/* Cards — remounted fresh per page (key={page}) so nothing ever lingers half-exited */}
+          <div key={page} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:px-14">
+            {visible.map((project, i) => (
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0, transition: { duration: 0.5, delay: i * 0.1, ease: [0.4, 0, 0.2, 1] } }}
+                whileHover={{ y: -6 }}
+                onClick={() => setSelected(project)}
+                className="group bg-[#1a1a1a] border border-emerald-500/[0.15] rounded-2xl overflow-hidden
+                           cursor-pointer hover:border-emerald-400/40
+                           hover:shadow-[0_12px_32px_rgba(16,185,129,0.2)]
+                           transition-[border-color,box-shadow] duration-300 flex flex-col"
+              >
+                {/* Image */}
+                <div className="relative w-full h-60 overflow-hidden">
+                  <motion.img
+                    src={project.image}
+                    alt={project.title}
+                    className="w-full h-full object-cover"
+                    whileHover={{ scale: 1.08 }}
+                    transition={{ duration: 0.4 }}
+                  />
+                  {/* Link-type badge — same circular accent badge as the reference design */}
+                  <motion.span
+                    whileHover={{ scale: 1.15 }}
+                    className="absolute top-3 right-3 w-9 h-9 rounded-full bg-emerald-400 text-dark-900
+                               flex items-center justify-center transition-colors
+                               group-hover:bg-white"
+                  >
+                    <BadgeIcon project={project} />
+                  </motion.span>
+                </div>
 
-                  {/* Body */}
-                  <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="text-lg font-semibold text-emerald-400 mb-2">{project.title}</h3>
-                    <p className="text-sm text-slate-400 leading-relaxed flex-1">{project.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                {/* Body */}
+                <div className="p-6 flex-1 flex flex-col">
+                  <h3 className="text-lg font-semibold text-emerald-400 mb-2">{project.title}</h3>
+                  <p className="text-sm text-slate-400 leading-relaxed flex-1">{project.description}</p>
+                </div>
+              </motion.div>
+            ))}
           </div>
 
-          {/* Next arrow */}
           <button
             onClick={goNext}
             disabled={page === totalPages - 1}
             aria-label="Next projects"
-            className="shrink-0 w-11 h-11 rounded-full border-2 border-emerald-400/40 text-emerald-400
-                       flex items-center justify-center transition-all
+            className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10
+                       w-11 h-11 rounded-full border-2 border-emerald-400/40 text-emerald-400
+                       items-center justify-center bg-dark-800 transition-all
                        hover:bg-emerald-400 hover:text-dark-900 hover:border-emerald-400
                        disabled:opacity-20 disabled:pointer-events-none"
           >
@@ -164,7 +160,7 @@ export default function Projects() {
           </button>
         </div>
 
-        {/* Dots */}
+        {/* Dots — the only nav control on mobile */}
         <div className="flex justify-center gap-2.5 mt-8">
           {Array.from({ length: totalPages }).map((_, i) => (
             <button
